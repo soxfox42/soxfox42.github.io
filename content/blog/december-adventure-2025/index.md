@@ -159,3 +159,7 @@ Here's how it looks:
 Also, I contributed a small but useful [change to the Pebble SDK](https://github.com/coredevices/PebbleOS/pull/578) -- in the next update, BDF fonts can be imported directly for custom pixel-perfect text. All the support was already there, I just needed to mark the extension as allowed.
 
 I think in the near future I'll write an Aseprite extension or a tool that uses exported Aseprite slices to generate a BDF, since I don't really like any existing BDF editors.
+
+# Break Time
+
+Hey, quick update for anyone following this. I'm still working on stuff in my own time, but until I finish work for the year I'm going to put the blog updates on hold.
