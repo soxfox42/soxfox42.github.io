@@ -163,3 +163,48 @@ I think in the near future I'll write an Aseprite extension or a tool that uses 
 # Break Time
 
 Hey, quick update for anyone following this. I'm still working on stuff in my own time, but until I finish work for the year I'm going to put the blog updates on hold.
+
+# Day 20: Pebble Time Again
+
+I want to do more Pebble development, because a new face idea has forced its way into my brain and will not leave until it exists on my wrist.
+
+The idea is something like this:
+
+{{< figure src="spindows-concept.png" class="invertible" >}}
+
+I call it "Spindows"!
+
+Anyway, to get this onto a watch, the first thing to figure out is how to draw *part* of a digit. I made a fresh Pebble project and started tinkering with ideas. I ruled out a couple of ideas first, because I figured they would be too much for the weak microcontroller in the watch:
+
+- Store the digits as paths, compute intersections between the digit polygons and the rotating blades, then fill the resulting polygons. This would be particularly challenging for digits with holes.
+- Just iterate every pixel on the screen like a shader, figuring out which masked region it falls in and sampling the correct digit texture.
+
+I only need to redraw during the transitions, but even still, both approaches felt too heavy. They could be last resorts though.
+
+## Multiple Layers
+
+The Pebble SDK supports adding multiple layers to a window with independent redraw functions. It took a while to figure out the details, but I was pretty sure I could use multiple layers to draw a wipe transition between digits relatively efficiently.
+
+Here's a visual explanation of how that would work:
+
+{{< figure src="spindows-layers.png" class="invertible" >}}
+
+So I went ahead and implemented that, starting simple by masking with a rectangle instead of a polygon. Long story short, that doesn't work. PebbleOS doesn't really mix layers together like that, layers are more like a way to organise your code than true layers with compositing. When I erase something while drawing the top layer, it erases anything on screen. 
+
+## Pre-rendered Animations
+
+The next idea I tried out was pre-rendering all the animations. Unfortunately, depending on which quadrant a digit appears in, it animates differently. It also animates into view one way, and out of view another way. Even ignoring the impossible cases (like anything over 2 as the first digit), I would need 58 different pre-rendered animations. Based on some testing I found about 12-16 frames of animation looked nice, and while I could choose to cut that down a bit, it would go over the Aplite (Pebble Classic) size limit no matter what way I looked at it.
+
+## Combine the Ideas
+
+What if.... pre-rendered animations, but also store them as paths? Pebble supports a custom vector format called PDC (Pebble Draw Commands), which includes support for animations. PDCs take up far less space than bitmap images, are good for large, simple shapes like the digits I'll use, and are fairly quick to render. I started playing around with this idea, and then...
+
+## Palette Swapping
+
+I think this is the one I'll go with. I realised that the animation frames are not actually independent. Really, we're making a gradient following the direction of the sweeping blades. Pixels switch off (when a digit disappears) or on (when it appears) in a clockwise pattern. Actually, they switch on and off in the exact same way, so I can even avoid having 2 animations per digit.
+
+By actually creating this gradient in a bitmap, I can use 29 4-bit bitmaps, which I estimate would take a similar amount of space to the PDC approach, perhaps less because I want this font to have some nice curves and be less blocky than Shine Through's.
+
+PebbleOS supports paletted bitmaps, which I already used for the transparency effect (on colour screens) in Shine Through, so I can just update the palettes and let the OS take care of the rest of the drawing. I can even get away with just two palettes for all eight digits that might be on screen at once -- one for appearing digits, the other for disappearing ones.
+
+I still need to build a proper proof of concept, but I think this should work well.
